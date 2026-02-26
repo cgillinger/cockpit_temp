@@ -560,18 +560,22 @@
         /* Hide tooltip */
         document.getElementById("chart-tooltip").classList.add("hidden");
 
-        /* Dimensions */
+        /* Estimate legend height: one row per ~3 series, 20px per row + padding */
+        var legendRows = Math.ceil(series.length / 3);
+        var legendHeight = legendRows * 22 + 12;
+
+        /* Dimensions — legend below chart, minimal right margin */
         var totalWidth = container.clientWidth - 16;
         var totalHeight = Math.max(400, Math.min(550, container.clientHeight - 16));
-        var margin = { top: 24, right: 165, bottom: 55, left: 62 };
+        var margin = { top: 24, right: 20, bottom: 55 + legendHeight, left: 62 };
         var plotW = totalWidth - margin.left - margin.right;
         var plotH = totalHeight - margin.top - margin.bottom;
 
         if (plotW < 100 || plotH < 80) return;
 
-        /* Calculate data extents */
+        /* Calculate data extents (thresholds do NOT affect y-scale) */
         var xMin = Infinity, xMax = -Infinity;
-        var yMin = Infinity, yMax = -Infinity;
+        var dataYMin = Infinity, dataYMax = -Infinity;
 
         series.forEach(function (s) {
             s.points.forEach(function (p) {
@@ -579,21 +583,14 @@
                 var t = p.time.getTime();
                 if (t < xMin) xMin = t;
                 if (t > xMax) xMax = t;
-                if (p.value < yMin) yMin = p.value;
-                if (p.value > yMax) yMax = p.value;
+                if (p.value < dataYMin) dataYMin = p.value;
+                if (p.value > dataYMax) dataYMax = p.value;
             });
         });
 
-        /* Include threshold values in y range */
-        thresholds.forEach(function (th) {
-            if (th.value < yMin) yMin = th.value;
-            if (th.value > yMax) yMax = th.value;
-        });
-
-        /* Add padding to y range */
-        var yPad = (yMax - yMin) * 0.1 || 5;
-        yMin = Math.floor(yMin - yPad);
-        yMax = Math.ceil(yMax + yPad);
+        /* Y-scale: round down to nearest 10 for min, (max + 10) rounded up to nearest 10 */
+        var yMin = Math.floor(dataYMin / 10) * 10;
+        var yMax = Math.ceil((dataYMax + 10) / 10) * 10;
         if (yMin < 0) yMin = 0;
 
         if (xMin >= xMax) { xMin = startTime.getTime(); xMax = endTime.getTime(); }
@@ -620,8 +617,11 @@
 
         /* Grid */
         var gridGroup = svgEl("g", { "class": "chart-grid" });
-        /* Horizontal grid lines (y ticks) */
-        var yTicks = niceTicksLinear(yMin, yMax, 8);
+        /* Horizontal grid lines (y ticks) — fixed 5°C steps */
+        var yTicks = [];
+        for (var yt = yMin; yt <= yMax; yt += 5) {
+            yTicks.push(yt);
+        }
         yTicks.forEach(function (v) {
             gridGroup.appendChild(svgEl("line", {
                 x1: margin.left, x2: margin.left + plotW,
@@ -651,11 +651,12 @@
                 "stroke-dasharray": dasharray,
                 "class": "chart-threshold"
             }));
-            /* Label on right edge */
+            /* Label inside plot area, top-right */
             var label = svgEl("text", {
-                x: margin.left + plotW + 4,
-                y: y + 4,
+                x: margin.left + plotW - 6,
+                y: y - 4,
                 fill: th.color,
+                "text-anchor": "end",
                 "class": "chart-threshold-label"
             });
             label.textContent = th.label;
@@ -736,23 +737,32 @@
         });
         svg.appendChild(xAxisGroup);
 
-        /* Legend (right side) */
+        /* Legend (below chart, horizontal wrap) */
         var legendGroup = svgEl("g");
-        var legendX = margin.left + plotW + 12;
-        var legendY = margin.top + 8;
+        var legendBaseY = margin.top + plotH + 42;
+        var legendX = margin.left;
+        var legendItemX = legendX;
+        var legendItemY = legendBaseY;
+        var legendColWidth = Math.max(180, Math.floor(plotW / 3));
+
         series.forEach(function (s, i) {
-            var gy = legendY + i * 22;
+            /* Wrap to next row if we'd exceed plot width */
+            if (i > 0 && legendItemX + legendColWidth > margin.left + plotW + 10) {
+                legendItemX = legendX;
+                legendItemY += 22;
+            }
             legendGroup.appendChild(svgEl("rect", {
-                x: legendX, y: gy - 6,
-                width: 14, height: 14, rx: 2,
+                x: legendItemX, y: legendItemY - 6,
+                width: 12, height: 12, rx: 2,
                 fill: s.color
             }));
             var ltxt = svgEl("text", {
-                x: legendX + 20, y: gy + 5,
+                x: legendItemX + 18, y: legendItemY + 4,
                 "class": "chart-legend-item"
             });
-            ltxt.textContent = truncate(s.label, 18);
+            ltxt.textContent = s.label;
             legendGroup.appendChild(ltxt);
+            legendItemX += legendColWidth;
         });
         svg.appendChild(legendGroup);
 
