@@ -139,7 +139,7 @@
     function resolveLatestArchive() {
         return new Promise(function (resolve, reject) {
             cockpit.spawn(["bash", "-c",
-                "ls -1t '" + archiveDir + "'/*.meta 2>/dev/null | head -1"],
+                "ls -1t " + archiveDir + "/*.meta 2>/dev/null | head -1"],
                 { err: "message" })
                 .then(function (output) {
                     var metaFile = output.trim();
@@ -346,7 +346,7 @@
                     "pmrep",
                     "-a", archivePath,
                     "-o", "csv",
-                    "-H", "-r",
+                    "-r",
                     "-t", stepSec + "sec",
                     "-S", "@" + formatPcpTime(startTime),
                     "-T", "@" + formatPcpTime(endTime)
