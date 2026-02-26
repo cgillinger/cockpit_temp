@@ -1,0 +1,87 @@
+{
+    "groups": [
+        {
+            "id": "cpu",
+            "label": "CPU",
+            "sensors": [
+                {
+                    "id": "cpu_package",
+                    "label": "Processortemperatur (Package)",
+                    "metric": "lmsensors.coretemp_isa_0000.temp1_input",
+                    "match": { "chip": "coretemp", "feature": "Package" },
+                    "thresholds": null
+                },
+                {
+                    "id": "cpu_core0",
+                    "label": "CPU Core 0",
+                    "metric": "lmsensors.coretemp_isa_0000.temp2_input",
+                    "match": { "chip": "coretemp", "feature": "Core 0" },
+                    "thresholds": null
+                },
+                {
+                    "id": "cpu_core1",
+                    "label": "CPU Core 1",
+                    "metric": "lmsensors.coretemp_isa_0000.temp3_input",
+                    "match": { "chip": "coretemp", "feature": "Core 1" },
+                    "thresholds": null
+                },
+                {
+                    "id": "cpu_core2",
+                    "label": "CPU Core 2",
+                    "metric": "lmsensors.coretemp_isa_0000.temp4_input",
+                    "match": { "chip": "coretemp", "feature": "Core 2" },
+                    "thresholds": null
+                },
+                {
+                    "id": "cpu_core3",
+                    "label": "CPU Core 3",
+                    "metric": "lmsensors.coretemp_isa_0000.temp5_input",
+                    "match": { "chip": "coretemp", "feature": "Core 3" },
+                    "thresholds": null
+                }
+            ]
+        },
+        {
+            "id": "nvme",
+            "label": "NVMe",
+            "sensors": [
+                {
+                    "id": "nvme_composite",
+                    "label": "NVMe temperatur (Composite)",
+                    "metric": "lmsensors.nvme_pci_0100.temp1_input",
+                    "match": { "chip": "nvme", "feature": "Composite" },
+                    "thresholds": [
+                        { "value": 65, "label": "NVMe Varning", "color": "#FFA726" },
+                        { "value": 75, "label": "NVMe Kritiskt", "color": "#E53935" }
+                    ]
+                },
+                {
+                    "id": "nvme_sensor1",
+                    "label": "NVMe temperatur (Sensor 1)",
+                    "metric": "lmsensors.nvme_pci_0100.temp2_input",
+                    "match": { "chip": "nvme", "feature": "Sensor 1" },
+                    "thresholds": null
+                },
+                {
+                    "id": "nvme_sensor2",
+                    "label": "NVMe temperatur (Sensor 2)",
+                    "metric": "lmsensors.nvme_pci_0100.temp3_input",
+                    "match": { "chip": "nvme", "feature": "Sensor 2" },
+                    "thresholds": null
+                }
+            ]
+        }
+    ],
+    "thresholds": {
+        "global": [
+            { "value": 70, "label": "Varning 70\u00b0C", "color": "#FFA726", "style": "dashed" },
+            { "value": 75, "label": "Smartd 75\u00b0C", "color": "#FF7043", "style": "dashed" },
+            { "value": 80, "label": "Kritiskt 80\u00b0C", "color": "#E53935", "style": "dashed" }
+        ]
+    },
+    "retention": {
+        "days": 365,
+        "maxSizeGB": 5
+    },
+    "archiveBase": "/var/log/pcp/pmlogger"
+}

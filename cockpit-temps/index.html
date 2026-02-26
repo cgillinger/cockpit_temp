@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <title>Temperaturer</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="../base1/cockpit.js"></script>
+</head>
+<body>
+    <div id="app">
+        <!-- Header -->
+        <header id="header">
+            <h1>Temperaturövervakning</h1>
+            <div id="status-bar"></div>
+        </header>
+
+        <!-- Main layout: sidebar + chart area -->
+        <div id="main-layout">
+            <!-- Left sidebar: sensor selection -->
+            <aside id="sensor-panel">
+                <h2>Sensorer</h2>
+                <div id="sensor-groups"></div>
+                <hr>
+                <button id="btn-discover" class="btn btn-secondary" title="Sök efter tillgängliga PCP-mått">
+                    Upptäck sensorer&hellip;
+                </button>
+                <div id="discovery-results" class="hidden"></div>
+            </aside>
+
+            <!-- Right: controls + chart -->
+            <section id="chart-section">
+                <!-- Date range controls -->
+                <div id="date-controls">
+                    <div id="preset-buttons">
+                        <span class="control-label">Snabbval:</span>
+                        <button class="btn btn-preset" data-duration="3600000">1 tim</button>
+                        <button class="btn btn-preset" data-duration="86400000">24 tim</button>
+                        <button class="btn btn-preset active" data-duration="604800000">7 dagar</button>
+                        <button class="btn btn-preset" data-duration="2592000000">30 dagar</button>
+                        <button class="btn btn-preset" data-duration="7776000000">90 dagar</button>
+                        <button class="btn btn-preset" data-duration="31536000000">1 år</button>
+                    </div>
+                    <div id="date-range-inputs">
+                        <label>
+                            <span>Från:</span>
+                            <input type="datetime-local" id="input-start">
+                        </label>
+                        <label>
+                            <span>Till:</span>
+                            <input type="datetime-local" id="input-end">
+                        </label>
+                        <button id="btn-fetch" class="btn btn-primary">Hämta data</button>
+                    </div>
+                    <div id="range-warning" class="hidden"></div>
+                </div>
+
+                <!-- Chart container -->
+                <div id="chart-container">
+                    <div id="chart-placeholder">
+                        Välj sensorer och tidsintervall, klicka sedan <strong>Hämta data</strong>.
+                    </div>
+                    <div id="chart-area" class="hidden"></div>
+                    <div id="chart-tooltip" class="chart-tooltip hidden"></div>
+                </div>
+
+                <!-- Error / info messages -->
+                <div id="messages" class="hidden"></div>
+            </section>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

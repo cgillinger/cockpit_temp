@@ -1,0 +1,502 @@
+/* ==========================================================================
+   Cockpit Temperature Plugin — Styles
+   ========================================================================== */
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: "RedHatText", "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    font-size: 14px;
+    color: #1a1a1a;
+    background: #f5f5f5;
+    margin: 0;
+    padding: 0;
+}
+
+#app {
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* ---------- Header ---------- */
+
+#header {
+    background: #fff;
+    border-bottom: 1px solid #d2d2d2;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+#header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+}
+
+#status-bar {
+    font-size: 12px;
+    color: #6a6a6a;
+}
+
+/* ---------- Main layout ---------- */
+
+#main-layout {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* ---------- Sensor panel (sidebar) ---------- */
+
+#sensor-panel {
+    width: 280px;
+    min-width: 240px;
+    background: #fff;
+    border-right: 1px solid #d2d2d2;
+    padding: 16px;
+    overflow-y: auto;
+    flex-shrink: 0;
+}
+
+#sensor-panel h2 {
+    font-size: 15px;
+    font-weight: 600;
+    margin: 0 0 12px 0;
+}
+
+.sensor-group {
+    margin-bottom: 16px;
+}
+
+.sensor-group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sensor-group-header input[type="checkbox"] {
+    margin: 0;
+}
+
+.sensor-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 0 4px 20px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.sensor-item:hover {
+    background: #f0f0f0;
+    border-radius: 3px;
+}
+
+.sensor-item input[type="checkbox"] {
+    margin: 0;
+    cursor: pointer;
+}
+
+.sensor-item label {
+    cursor: pointer;
+    user-select: none;
+    flex: 1;
+}
+
+.sensor-color-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+#sensor-panel hr {
+    border: none;
+    border-top: 1px solid #e0e0e0;
+    margin: 12px 0;
+}
+
+#discovery-results {
+    margin-top: 10px;
+    font-size: 12px;
+    max-height: 300px;
+    overflow-y: auto;
+    background: #fafafa;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 8px;
+}
+
+#discovery-results pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+/* ---------- Chart section ---------- */
+
+#chart-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px;
+    overflow-y: auto;
+    min-width: 0;
+}
+
+/* ---------- Date controls ---------- */
+
+#date-controls {
+    background: #fff;
+    border: 1px solid #d2d2d2;
+    border-radius: 6px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+#preset-buttons {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.control-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #555;
+    margin-right: 4px;
+}
+
+#date-range-inputs {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+#date-range-inputs label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+#date-range-inputs input[type="datetime-local"] {
+    padding: 4px 8px;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: inherit;
+}
+
+#range-warning {
+    margin-top: 8px;
+    padding: 6px 10px;
+    background: #fff3e0;
+    border: 1px solid #FFB74D;
+    border-radius: 4px;
+    color: #e65100;
+    font-size: 12px;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+    display: inline-block;
+    padding: 5px 12px;
+    border: 1px solid #c0c0c0;
+    border-radius: 4px;
+    background: #fff;
+    color: #333;
+    font-size: 13px;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+}
+
+.btn:hover {
+    background: #f0f0f0;
+    border-color: #999;
+}
+
+.btn:active {
+    background: #e0e0e0;
+}
+
+.btn-primary {
+    background: #0066cc;
+    color: #fff;
+    border-color: #0055aa;
+}
+
+.btn-primary:hover {
+    background: #005bb5;
+}
+
+.btn-primary:active {
+    background: #004a99;
+}
+
+.btn-primary:disabled {
+    background: #99c2e8;
+    border-color: #99c2e8;
+    cursor: not-allowed;
+}
+
+.btn-secondary {
+    background: #f5f5f5;
+    font-size: 12px;
+}
+
+.btn-preset {
+    padding: 4px 10px;
+    font-size: 12px;
+}
+
+.btn-preset.active {
+    background: #0066cc;
+    color: #fff;
+    border-color: #0055aa;
+}
+
+/* ---------- Chart container ---------- */
+
+#chart-container {
+    position: relative;
+    background: #fff;
+    border: 1px solid #d2d2d2;
+    border-radius: 6px;
+    min-height: 450px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#chart-placeholder {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 1;
+    color: #888;
+    font-size: 14px;
+    text-align: center;
+    padding: 40px;
+}
+
+#chart-area {
+    flex: 1;
+    min-height: 400px;
+    padding: 8px;
+}
+
+#chart-area svg {
+    width: 100%;
+    display: block;
+}
+
+/* ---------- Chart tooltip ---------- */
+
+.chart-tooltip {
+    position: absolute;
+    pointer-events: none;
+    background: rgba(30, 30, 30, 0.92);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 5px;
+    font-size: 12px;
+    line-height: 1.6;
+    z-index: 100;
+    max-width: 320px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+    white-space: nowrap;
+}
+
+.chart-tooltip .tt-time {
+    font-weight: 600;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+    padding-bottom: 4px;
+}
+
+.chart-tooltip .tt-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.chart-tooltip .tt-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.chart-tooltip .tt-val {
+    margin-left: auto;
+    font-weight: 600;
+    padding-left: 12px;
+}
+
+/* ---------- Messages ---------- */
+
+#messages {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 5px;
+    font-size: 13px;
+}
+
+#messages.msg-error {
+    background: #fdecea;
+    border: 1px solid #f5c6cb;
+    color: #721c24;
+}
+
+#messages.msg-info {
+    background: #e8f4fd;
+    border: 1px solid #bee5eb;
+    color: #0c5460;
+}
+
+#messages.msg-loading {
+    background: #fff;
+    border: 1px solid #d2d2d2;
+    color: #555;
+}
+
+/* ---------- SVG chart styling ---------- */
+
+.chart-grid line {
+    stroke: #e8e8e8;
+    stroke-width: 1;
+}
+
+.chart-axis line,
+.chart-axis path {
+    stroke: #999;
+    stroke-width: 1;
+    fill: none;
+}
+
+.chart-axis text {
+    fill: #555;
+    font-size: 11px;
+    font-family: inherit;
+}
+
+.chart-axis-label {
+    fill: #333;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.chart-line {
+    fill: none;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
+
+.chart-threshold {
+    stroke-width: 1.5;
+    stroke-dasharray: 6, 4;
+}
+
+.chart-threshold-label {
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.chart-legend-item text {
+    font-size: 12px;
+    fill: #333;
+}
+
+.chart-crosshair {
+    stroke: #888;
+    stroke-width: 1;
+    stroke-dasharray: 3, 3;
+}
+
+.chart-hover-dot {
+    stroke: #fff;
+    stroke-width: 2;
+}
+
+.chart-overlay {
+    fill: transparent;
+    cursor: crosshair;
+}
+
+.chart-no-data {
+    fill: #999;
+    font-size: 14px;
+    text-anchor: middle;
+}
+
+/* ---------- Utility ---------- */
+
+.hidden {
+    display: none !important;
+}
+
+.spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-top-color: #0066cc;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    vertical-align: middle;
+    margin-right: 6px;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+    #main-layout {
+        flex-direction: column;
+    }
+
+    #sensor-panel {
+        width: 100%;
+        min-width: unset;
+        border-right: none;
+        border-bottom: 1px solid #d2d2d2;
+        max-height: 200px;
+    }
+
+    .sensor-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 16px;
+    }
+
+    .sensor-item {
+        padding: 2px 0 2px 0;
+    }
+}
