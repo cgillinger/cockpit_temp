@@ -200,6 +200,11 @@
                 var cb = document.createElement("input");
                 cb.type = "checkbox";
                 cb.id = "cb-" + sensor.id;
+                /* Pre-select sensors marked as default */
+                if (sensor["default"]) {
+                    cb.checked = true;
+                    selectedSensors[sensor.id] = true;
+                }
                 cb.addEventListener("change", function () {
                     selectedSensors[sensor.id] = cb.checked;
                     /* Update group checkbox */
@@ -220,6 +225,16 @@
 
                 div.appendChild(item);
             });
+
+            /* Sync group checkbox with default selections */
+            var allChecked = group.sensors.every(function (s) {
+                return selectedSensors[s.id];
+            });
+            var someChecked = group.sensors.some(function (s) {
+                return selectedSensors[s.id];
+            });
+            groupCb.checked = allChecked;
+            groupCb.indeterminate = !allChecked && someChecked;
 
             container.appendChild(div);
         });

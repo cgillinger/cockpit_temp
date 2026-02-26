@@ -9,6 +9,7 @@
                     "label": "Processortemperatur (Package)",
                     "metric": "lmsensors.coretemp_isa_0000.package_id_0",
                     "match": { "chip": "coretemp", "feature": "Package" },
+                    "default": true,
                     "thresholds": null
                 },
                 {
@@ -50,6 +51,7 @@
                     "label": "NVMe temperatur (Composite)",
                     "metric": "lmsensors.nvme_pci_0100.composite",
                     "match": { "chip": "nvme", "feature": "Composite" },
+                    "default": true,
                     "thresholds": [
                         { "value": 65, "label": "NVMe Varning", "color": "#FFA726" },
                         { "value": 75, "label": "NVMe Kritiskt", "color": "#E53935" }
@@ -60,6 +62,7 @@
                     "label": "NVMe temperatur (Sensor 1)",
                     "metric": "lmsensors.nvme_pci_0100.sensor_1",
                     "match": { "chip": "nvme", "feature": "Sensor 1" },
+                    "default": true,
                     "thresholds": null
                 },
                 {
