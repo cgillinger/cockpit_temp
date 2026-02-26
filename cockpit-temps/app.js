@@ -638,9 +638,17 @@
         });
         svg.appendChild(gridGroup);
 
-        /* Threshold lines */
+        /* Threshold lines — draw lines first, then place labels with
+           collision avoidance so overlapping temperatures don't produce
+           unreadable stacked text. */
         var threshGroup = svgEl("g");
-        thresholds.forEach(function (th) {
+        var threshLabelPositions = [];
+        var MIN_LABEL_GAP = 14; /* minimum px between label baselines */
+
+        /* Sort thresholds by value descending so highest label is placed first */
+        var sortedThresh = thresholds.slice().sort(function (a, b) { return b.value - a.value; });
+
+        sortedThresh.forEach(function (th) {
             if (th.value < yMin || th.value > yMax) return;
             var y = yScale(th.value);
             var dasharray = th.style === "dashed" ? "6,4" : th.style === "dotted" ? "2,3" : "none";
@@ -651,12 +659,21 @@
                 "stroke-dasharray": dasharray,
                 "class": "chart-threshold"
             }));
-            /* Label inside plot area, top-right */
+
+            /* Choose label y: nudge down if too close to an already-placed label */
+            var labelY = y - 4;
+            for (var li = 0; li < threshLabelPositions.length; li++) {
+                if (Math.abs(labelY - threshLabelPositions[li]) < MIN_LABEL_GAP) {
+                    labelY = threshLabelPositions[li] + MIN_LABEL_GAP;
+                }
+            }
+            threshLabelPositions.push(labelY);
+
             var label = svgEl("text", {
-                x: margin.left + plotW - 6,
-                y: y - 4,
+                x: margin.left + 6,
+                y: labelY,
                 fill: th.color,
-                "text-anchor": "end",
+                "text-anchor": "start",
                 "class": "chart-threshold-label"
             });
             label.textContent = th.label;
