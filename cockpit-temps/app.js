@@ -133,6 +133,28 @@
         });
     }
 
+    /* Resolve the most recent PCP archive file inside archiveDir.
+       pmrep requires a specific archive base path, not a directory. We find
+       the newest .meta file and strip the extension to get the base path. */
+    function resolveLatestArchive() {
+        return new Promise(function (resolve, reject) {
+            cockpit.spawn(["bash", "-c",
+                "ls -1t '" + archiveDir + "'/*.meta 2>/dev/null | head -1"],
+                { err: "message" })
+                .then(function (output) {
+                    var metaFile = output.trim();
+                    if (metaFile) {
+                        resolve(metaFile.replace(/\.meta$/, ""));
+                    } else {
+                        reject("Inga arkivfiler (.meta) hittades i " + archiveDir);
+                    }
+                })
+                .catch(function (err) {
+                    reject("Kunde inte söka arkivfiler: " + err);
+                });
+        });
+    }
+
     /* ======================================================================
        Sensor panel rendering
        ====================================================================== */
@@ -311,23 +333,27 @@
         var stepSec = getStepForRange(rangeMs);
         var metrics = sensors.map(function (s) { return s.metric; });
 
-        var args = [
-            "pmrep",
-            "-a", archiveDir,
-            "-o", "csv",
-            "-H", "-r",
-            "-t", stepSec + "sec",
-            "-S", "@" + formatPcpTime(startTime),
-            "-T", "@" + formatPcpTime(endTime)
-        ].concat(metrics);
-
         showMessage('<span class="spinner"></span> Hämtar data (' +
             sensors.length + " sensorer, steg " + humanStep(stepSec) + ")&hellip;", "loading");
 
         setStatus("Hämtar data\u2026");
         document.getElementById("btn-fetch").disabled = true;
 
-        cockpit.spawn(args, { err: "message", superuser: "try" })
+        /* Resolve latest archive file, then query it with pmrep */
+        resolveLatestArchive()
+            .then(function (archivePath) {
+                var args = [
+                    "pmrep",
+                    "-a", archivePath,
+                    "-o", "csv",
+                    "-H", "-r",
+                    "-t", stepSec + "sec",
+                    "-S", "@" + formatPcpTime(startTime),
+                    "-T", "@" + formatPcpTime(endTime)
+                ].concat(metrics);
+
+                return cockpit.spawn(args, { err: "message", superuser: "try" });
+            })
             .then(function (output) {
                 document.getElementById("btn-fetch").disabled = false;
                 var parsed = parsePmrepCSV(output, sensors);
