@@ -603,9 +603,9 @@
             });
         });
 
-        /* Y-scale: round down to nearest 10 for min, (max + 10) rounded up to nearest 10 */
-        var yMin = Math.floor(dataYMin / 10) * 10;
-        var yMax = Math.ceil((dataYMax + 10) / 10) * 10;
+        /* Y-scale: 5°C padding, rounded to nearest 5°C step */
+        var yMin = Math.floor(dataYMin / 5) * 5 - 5;
+        var yMax = Math.ceil(dataYMax / 5) * 5 + 5;
         if (yMin < 0) yMin = 0;
 
         if (xMin >= xMax) { xMin = startTime.getTime(); xMax = endTime.getTime(); }
