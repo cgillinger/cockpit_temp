@@ -133,18 +133,21 @@
         });
     }
 
-    /* Resolve the most recent PCP archive file inside archiveDir.
-       pmrep requires a specific archive base path, not a directory. We find
-       the newest .meta file and strip the extension to get the base path. */
+    /* Verify that PCP archives exist in archiveDir and return the directory
+       path. pmrep accepts a directory as the -a argument and automatically
+       merges all archives it contains, respecting -S/-T time filters. This
+       allows queries to span multiple archive files (e.g. across daily
+       rotations or after a service restart). */
     function resolveLatestArchive() {
         return new Promise(function (resolve, reject) {
             cockpit.spawn(["bash", "-c",
-                "ls -1t " + archiveDir + "/*.meta 2>/dev/null | head -1"],
+                "ls -1 " + archiveDir + "/*.meta 2>/dev/null | head -1"],
                 { err: "message" })
                 .then(function (output) {
-                    var metaFile = output.trim();
-                    if (metaFile) {
-                        resolve(metaFile.replace(/\.meta$/, ""));
+                    if (output.trim()) {
+                        /* Return the directory so pmrep can access ALL
+                           archives, not just the most recently created one. */
+                        resolve(archiveDir);
                     } else {
                         reject("Inga arkivfiler (.meta) hittades i " + archiveDir);
                     }
@@ -354,7 +357,9 @@
         setStatus("Hämtar data\u2026");
         document.getElementById("btn-fetch").disabled = true;
 
-        /* Resolve latest archive file, then query it with pmrep */
+        /* Verify archives exist, then query the whole archive directory with
+           pmrep so data from all archive files (daily rotations, restarts)
+           is included in the result. */
         resolveLatestArchive()
             .then(function (archivePath) {
                 var args = [
