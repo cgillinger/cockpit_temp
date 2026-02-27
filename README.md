@@ -11,11 +11,11 @@ archive rotation and disk-budget enforcement.
 ## Features
 
 - **Historical charts** — query PCP archives up to 1 year back
-- **Sensor grouping** — CPU / NVMe groups with Swedish-friendly labels
+- **Sensor grouping** — configurable groups (CPU, NVMe, etc.) with custom labels
 - **Threshold lines** — global defaults (70 / 75 / 80 °C) plus per-sensor overrides
 - **Date range controls** — quick presets (1h, 24h, 7d, 30d, 90d, 1y) and custom range
 - **Auto downsampling** — step size scales with time range (1 min → 6 h)
-- **Metric discovery** — UI button lists available PCP lmsensors metrics
+- **Metric discovery** — UI button lists all available PCP lmsensors metrics
 - **Archive rotation** — pmlogger_daily + cron-based disk budget
 - **Zero external deps** — plain JS, inline SVG chart, no build step
 
@@ -30,7 +30,7 @@ cockpit-temps/
 ├── app.js                     # Application logic + SVG chart
 ├── style.css                  # Styles
 └── config/
-    └── sensors.json           # Sensor mapping, thresholds, retention config
+    └── sensors.json           # Sensor mapping, thresholds, retention config  ← you must edit this
 
 scripts/
 ├── setup_pcp_temps.sh         # Install PCP + lmsensors PMDA + rotation
@@ -40,16 +40,16 @@ scripts/
 
 ---
 
-## Quick Start
+## Installation
 
-### 1. Clone the repo
+### Step 1 — Clone the repo
 
 ```bash
 git clone <this-repo> cockpit-temps-repo
 cd cockpit-temps-repo
 ```
 
-### 2. Run the PCP setup script (as root)
+### Step 2 — Run the PCP setup script (as root)
 
 ```bash
 sudo bash scripts/setup_pcp_temps.sh
@@ -57,7 +57,7 @@ sudo bash scripts/setup_pcp_temps.sh
 
 This will:
 - Install `lm-sensors`, `pcp`, `cockpit`, `cockpit-pcp`
-- Run `sensors-detect`
+- Run `sensors-detect` to load kernel sensor modules
 - Install the lmsensors PMDA
 - Configure `pmlogger` to archive lmsensors metrics every 60 s
 - Set up archive rotation (365 days retention, 5 GB max)
@@ -65,11 +65,11 @@ This will:
 
 **Configurable variables** (set before running or edit the script):
 
-| Variable             | Default | Description                     |
-|---------------------|---------|---------------------------------|
-| `RETENTION_DAYS`    | 365     | Keep archives this many days    |
-| `MAX_SIZE_GB`       | 5       | Max total archive disk usage    |
-| `PMLOGGER_INTERVAL` | 60      | Logging interval in seconds     |
+| Variable             | Default | Description                  |
+|----------------------|---------|------------------------------|
+| `RETENTION_DAYS`     | 365     | Keep archives this many days |
+| `MAX_SIZE_GB`        | 5       | Max total archive disk usage |
+| `PMLOGGER_INTERVAL`  | 60      | Logging interval in seconds  |
 
 Example:
 
@@ -77,86 +77,140 @@ Example:
 sudo RETENTION_DAYS=180 MAX_SIZE_GB=2 bash scripts/setup_pcp_temps.sh
 ```
 
-### 3. Install the Cockpit plugin
+### Step 3 — Configure sensors for your hardware (required)
+
+> **This step is required on every machine.** The default `sensors.json` is
+> configured for specific hardware (an Intel CPU and one NVMe drive at a
+> specific PCI address). Your system will almost certainly have different metric
+> names. The plugin will load but show no data until this is done.
+
+**Find your metric names:**
+
+```bash
+pminfo -t lmsensors
+```
+
+Example output (your output will differ):
+
+```
+lmsensors.coretemp_isa_0000.package_id_0  [coretemp-isa-0000 Package id 0]
+lmsensors.coretemp_isa_0000.core_0        [coretemp-isa-0000 Core 0]
+lmsensors.coretemp_isa_0000.core_1        [coretemp-isa-0000 Core 1]
+lmsensors.nvme_pci_0100.composite         [nvme-pci-0100 Composite]
+lmsensors.nvme_pci_0100.sensor_1          [nvme-pci-0100 Sensor 1]
+```
+
+The naming convention is `lmsensors.<chip>.<feature>` where the chip name is
+the adapter name from `sensors` with dashes replaced by underscores
+(e.g. `coretemp-isa-0000` → `coretemp_isa_0000`).
+
+Common hardware differences:
+
+| Hardware         | Example chip name                    |
+|------------------|--------------------------------------|
+| Intel CPU        | `coretemp_isa_0000`                  |
+| AMD CPU          | `k10temp_pci_00c3` (address varies)  |
+| NVMe at 01:00    | `nvme_pci_0100`                      |
+| NVMe at 02:00    | `nvme_pci_0200`                      |
+| Second NVMe      | `nvme_pci_0300` (address varies)     |
+
+**Edit `cockpit-temps/config/sensors.json`** to match your metric names. A
+minimal example for one CPU package sensor and one NVMe:
+
+```json
+{
+    "groups": [
+        {
+            "id": "cpu",
+            "label": "CPU",
+            "sensors": [
+                {
+                    "id": "cpu_package",
+                    "label": "CPU Package",
+                    "metric": "lmsensors.coretemp_isa_0000.package_id_0",
+                    "default": true,
+                    "thresholds": null
+                }
+            ]
+        },
+        {
+            "id": "nvme",
+            "label": "NVMe",
+            "sensors": [
+                {
+                    "id": "nvme_composite",
+                    "label": "NVMe Composite",
+                    "metric": "lmsensors.nvme_pci_0100.composite",
+                    "default": true,
+                    "thresholds": [
+                        { "value": 65, "label": "NVMe Warning",  "color": "#FFA726" },
+                        { "value": 75, "label": "NVMe Critical", "color": "#E53935" }
+                    ]
+                }
+            ]
+        }
+    ],
+    "thresholds": {
+        "global": [
+            { "value": 70, "label": "Warning 70\u00b0C",  "color": "#FFA726", "style": "dashed" },
+            { "value": 75, "label": "Smartd 75\u00b0C",   "color": "#FF7043", "style": "dashed" },
+            { "value": 80, "label": "Critical 80\u00b0C", "color": "#E53935", "style": "dashed" }
+        ]
+    },
+    "retention": {
+        "days": 365,
+        "maxSizeGB": 5
+    },
+    "archiveBase": "/var/log/pcp/pmlogger"
+}
+```
+
+Remove sensor entries whose metrics do not exist on your hardware — they will
+simply produce no data but cause no errors.
+
+### Step 4 — Install the plugin
 
 ```bash
 sudo bash scripts/install_plugin.sh
 ```
 
-### 4. Open Cockpit
+Re-run this command any time you change `sensors.json`.
 
-Navigate to `https://<server-ip>:9090` and click **Temperaturer** in the menu.
+### Step 5 — Open Cockpit
+
+Navigate to `https://<server-ip>:9090` and click **Temperatures** in the menu.
 
 ---
 
-## Sensor Configuration
+## Sensor Configuration Reference
 
-Edit `cockpit-temps/config/sensors.json` to customise sensor labels, PCP metric
-names, and thresholds.
+### Global thresholds
 
-### Discovering your metric names
-
-**Option A — Use the UI:** Click the "Upptäck sensorer" button in the plugin
-sidebar. It runs `pminfo -t lmsensors` and lists all available metrics.
-
-**Option B — Command line:**
-
-```bash
-# List all lmsensors metric names
-pminfo lmsensors
-
-# List metrics with descriptions
-pminfo -t lmsensors
-
-# Show current values
-pminfo -f lmsensors
-```
-
-### Example `pminfo -t lmsensors` output
-
-```
-lmsensors.coretemp_isa_0000.temp1_input [coretemp-isa-0000 temperature input temp1]
-lmsensors.coretemp_isa_0000.temp2_input [coretemp-isa-0000 temperature input temp2]
-lmsensors.coretemp_isa_0000.temp3_input [coretemp-isa-0000 temperature input temp3]
-lmsensors.coretemp_isa_0000.temp4_input [coretemp-isa-0000 temperature input temp4]
-lmsensors.coretemp_isa_0000.temp5_input [coretemp-isa-0000 temperature input temp5]
-lmsensors.nvme_pci_0100.temp1_input     [nvme-pci-0100 temperature input temp1]
-lmsensors.nvme_pci_0100.temp2_input     [nvme-pci-0100 temperature input temp2]
-lmsensors.nvme_pci_0100.temp3_input     [nvme-pci-0100 temperature input temp3]
-```
-
-### Mapping lm-sensors output to PCP metrics
-
-| `sensors` label          | PCP metric name                              | Config label                      |
-|--------------------------|----------------------------------------------|-----------------------------------|
-| Package id 0 (coretemp)  | `lmsensors.coretemp_isa_0000.temp1_input`    | Processortemperatur (Package)     |
-| Core 0 (coretemp)        | `lmsensors.coretemp_isa_0000.temp2_input`    | CPU Core 0                        |
-| Core 1 (coretemp)        | `lmsensors.coretemp_isa_0000.temp3_input`    | CPU Core 1                        |
-| Core 2 (coretemp)        | `lmsensors.coretemp_isa_0000.temp4_input`    | CPU Core 2                        |
-| Core 3 (coretemp)        | `lmsensors.coretemp_isa_0000.temp5_input`    | CPU Core 3                        |
-| Composite (nvme)         | `lmsensors.nvme_pci_0100.temp1_input`        | NVMe temperatur (Composite)      |
-| Sensor 1 (nvme)          | `lmsensors.nvme_pci_0100.temp2_input`        | NVMe temperatur (Sensor 1)       |
-| Sensor 2 (nvme)          | `lmsensors.nvme_pci_0100.temp3_input`        | NVMe temperatur (Sensor 2)       |
-
-The naming convention: `lmsensors.<chip>.<feature>` where:
-- Chip: adapter name with dashes → underscores (e.g., `coretemp-isa-0000` → `coretemp_isa_0000`)
-- Feature: sensor label from libsensors (e.g., `temp1_input`, `temp2_input`, ...)
+Defined under `thresholds.global` in `sensors.json`. These horizontal lines are
+drawn on every chart regardless of which sensors are selected.
 
 ### Per-sensor thresholds
 
-In `sensors.json`, each sensor can override the global thresholds:
+Each sensor entry can include a `thresholds` array to add sensor-specific lines:
 
 ```json
 {
     "id": "nvme_composite",
-    "label": "NVMe temperatur (Composite)",
-    "metric": "lmsensors.nvme_pci_0100.temp1_input",
+    "label": "NVMe Composite",
+    "metric": "lmsensors.nvme_pci_0100.composite",
     "thresholds": [
-        { "value": 65, "label": "NVMe Varning", "color": "#FFA726" },
-        { "value": 75, "label": "NVMe Kritiskt", "color": "#E53935" }
+        { "value": 65, "label": "NVMe Warning",  "color": "#FFA726" },
+        { "value": 75, "label": "NVMe Critical", "color": "#E53935" }
     ]
 }
 ```
+
+Set `"thresholds": null` to inherit only the global thresholds.
+
+### The `default` flag
+
+Sensors with `"default": true` are pre-checked when the plugin loads. All
+others must be selected manually.
 
 ---
 
@@ -190,10 +244,6 @@ cat /etc/default/pmlogger    # or /etc/sysconfig/pmlogger
 
 # Manually trigger budget enforcement (safe to run)
 sudo bash /etc/cron.daily/pcp-archive-budget
-
-# Check pmlogger_daily status
-systemctl status pmlogger_daily.timer
-journalctl -u pmlogger_daily --since today
 ```
 
 ### Adjusting retention after install
@@ -209,97 +259,40 @@ Then restart: `sudo systemctl restart pmlogger`
 
 ---
 
-## Acceptance Tests
-
-### 1. Sensors detected
-
-```bash
-sensors
-# Expected: output showing coretemp-isa-0000 and/or nvme-pci-0100 adapters
-```
-
-### 2. PCP lmsensors metrics available
-
-```bash
-pminfo | grep -i lmsensors
-# Expected: multiple lmsensors.* metric names
-
-pminfo -f lmsensors | head -20
-# Expected: metric names with numeric temperature values
-```
-
-### 3. Live data via pmval
-
-```bash
-pmval -s 3 -t 2sec lmsensors.coretemp_isa_0000.temp1_input
-# Expected: 3 temperature samples, e.g. 55.000, 56.000, 55.000
-```
-
-### 4. Archive data exists
-
-```bash
-# Wait a few minutes after setup, then:
-pmrep -a /var/log/pcp/pmlogger/$(hostname)/ -o csv -H -t 60sec \
-  -S "-10minutes" lmsensors.coretemp_isa_0000.temp1_input
-# Expected: CSV rows with timestamps and temperature values
-```
-
-### 5. UI tests (manual)
-
-1. Open Cockpit → Temperaturer
-2. Select "NVMe temperatur (Sensor 1)" checkbox
-3. Choose "24 tim" preset → click **Hämta data**
-4. **Expected:** Line chart with data points rendered
-5. Choose "1 år" preset → click **Hämta data**
-6. **Expected:** Chart renders with downsampled data (6h steps); range clamped at 365 days
-7. Hover over chart → tooltip shows timestamp + temperature
-8. Three threshold lines visible: "Varning 70°C", "Smartd 75°C", "Kritiskt 80°C"
-9. Click "Upptäck sensorer" → list of PCP metric names appears
-
-### 6. Rotation & budget
-
-```bash
-# Check archive size stays within budget after several days/weeks
-du -sh /var/log/pcp/pmlogger/$(hostname)/
-
-# Simulate budget enforcement
-sudo bash /etc/cron.daily/pcp-archive-budget
-```
-
-### 7. Survives reboot
-
-```bash
-sudo reboot
-# After reboot:
-systemctl is-active pmcd pmlogger cockpit.socket
-# Expected: all "active"
-```
-
----
-
 ## Troubleshooting
 
 ### Plugin doesn't appear in Cockpit menu
 
 ```bash
 ls -la /usr/share/cockpit/cockpit-temps/
-# Verify manifest.json exists and is readable
 cat /usr/share/cockpit/cockpit-temps/manifest.json
-# Restart cockpit
 sudo systemctl restart cockpit.socket
 ```
 
-### "Inga datapunkter hittades" in the UI
+### Chart shows no data / "No data points found"
 
-1. Check PCP is running: `systemctl status pmcd pmlogger`
-2. Check archives exist: `ls /var/log/pcp/pmlogger/$(hostname)/`
-3. Check metrics: `pminfo -f lmsensors | head -20`
-4. Try fetching manually:
+Work through this checklist in order:
+
+1. **Check that PCP services are running:**
    ```bash
-   pmrep -a /var/log/pcp/pmlogger/$(hostname)/ -o csv -H -t 60sec \
-     -S "-1hour" lmsensors.coretemp_isa_0000.temp1_input
+   systemctl status pmcd pmlogger
    ```
-5. If no output, wait a few minutes for pmlogger to accumulate data
+
+2. **Check that archives exist and contain data:**
+   ```bash
+   ls /var/log/pcp/pmlogger/$(hostname)/
+   pmrep -a /var/log/pcp/pmlogger/$(hostname)/ -o csv -H -t 60sec \
+     -S "-10minutes" lmsensors.coretemp_isa_0000.package_id_0
+   ```
+
+3. **Check that the metric names in `sensors.json` match your hardware:**
+   ```bash
+   pminfo -t lmsensors
+   ```
+   If the names differ, update `sensors.json` and re-run `install_plugin.sh`.
+
+4. **If archives are empty**, wait a few minutes — pmlogger needs time after
+   startup to write the first data points.
 
 ### pminfo shows no lmsensors metrics
 
@@ -312,27 +305,66 @@ sudo systemctl restart pmcd
 pminfo lmsensors
 ```
 
-### Metric names don't match config
-
-Use the "Upptäck sensorer" button or run:
-```bash
-pminfo -t lmsensors
-```
-Then update `cockpit-temps/config/sensors.json` with the correct metric names
-and re-run `sudo bash scripts/install_plugin.sh`.
-
 ### Archive disk usage growing too large
 
 ```bash
-# Check current size
 du -sh /var/log/pcp/pmlogger/$(hostname)/
-
-# Run budget script manually
 sudo bash /etc/cron.daily/pcp-archive-budget
-
-# Reduce retention
 sudo sed -i 's/-k [0-9]*/-k 90/' /etc/default/pmlogger
 sudo systemctl restart pmlogger
+```
+
+---
+
+## Acceptance Tests
+
+### 1. Sensors detected
+
+```bash
+sensors
+# Expected: output showing your hardware adapters (coretemp, nvme, k10temp, etc.)
+```
+
+### 2. PCP lmsensors metrics available
+
+```bash
+pminfo -t lmsensors
+# Expected: list of lmsensors.* metric names matching your hardware
+```
+
+### 3. Live data via pmval
+
+```bash
+# Replace the metric name with one from your pminfo output
+pmval -s 3 -t 2sec lmsensors.coretemp_isa_0000.package_id_0
+# Expected: 3 temperature samples, e.g. 55.000, 56.000, 55.000
+```
+
+### 4. Archive data exists
+
+```bash
+# Wait a few minutes after setup, then:
+pmrep -a /var/log/pcp/pmlogger/$(hostname)/ -o csv -H -t 60sec \
+  -S "-10minutes" lmsensors.coretemp_isa_0000.package_id_0
+# Expected: CSV rows with timestamps and temperature values
+```
+
+### 5. UI smoke test (manual)
+
+1. Open Cockpit → Temperatures
+2. Select a sensor checkbox
+3. Choose a time preset → click **Fetch data**
+4. **Expected:** line chart renders with data points
+5. Hover over the chart → tooltip shows timestamp and temperature value
+6. Threshold lines are visible
+
+### 6. Survives reboot
+
+```bash
+sudo reboot
+# After reboot:
+systemctl is-active pmcd pmlogger cockpit.socket
+# Expected: all "active"
 ```
 
 ---
@@ -343,7 +375,7 @@ sudo systemctl restart pmlogger
 # Remove plugin only
 sudo bash scripts/uninstall_plugin.sh
 
-# Remove plugin + PCP config (archives preserved)
+# Remove plugin + PCP config (archives are preserved)
 sudo bash scripts/uninstall_plugin.sh --purge
 ```
 
