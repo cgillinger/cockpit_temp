@@ -141,13 +141,14 @@
     function resolveLatestArchive() {
         return new Promise(function (resolve, reject) {
             cockpit.spawn(["bash", "-c",
-                "ls -1 " + archiveDir + "/*.meta 2>/dev/null | head -1"],
+                "ls -1t " + archiveDir + "/*.meta 2>/dev/null | head -1"],
                 { err: "message" })
                 .then(function (output) {
                     if (output.trim()) {
-                        /* Return the directory so pmrep can access ALL
-                           archives, not just the most recently created one. */
-                        resolve(archiveDir);
+                        /* Return the latest uncompressed archive base path
+                           (strip .meta) so pmrep targets only the current
+                           archive and avoids broken rotated .meta.xz files. */
+                        resolve(output.trim().replace(/\.meta$/, ""));
                     } else {
                         reject("Inga arkivfiler (.meta) hittades i " + archiveDir);
                     }
