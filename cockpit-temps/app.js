@@ -134,10 +134,10 @@
     }
 
     /* Verify that PCP archives exist in archiveDir and return the directory
-       path. pmrep accepts a directory as the -a argument and automatically
-       merges all archives it contains, respecting -S/-T time filters. This
-       allows queries to span multiple archive files (e.g. across daily
-       rotations or after a service restart). */
+       path.  We check for .meta files to confirm archives are present, but
+       return archiveDir itself.  pmrep accepts a directory as the -a argument
+       and automatically merges all archives it contains, respecting -S/-T
+       time filters — giving full coverage across daily rotations. */
     function resolveLatestArchive() {
         return new Promise(function (resolve, reject) {
             cockpit.spawn(["bash", "-c",
@@ -145,10 +145,10 @@
                 { err: "message" })
                 .then(function (output) {
                     if (output.trim()) {
-                        /* Return the latest uncompressed archive base path
-                           (strip .meta) so pmrep targets only the current
-                           archive and avoids broken rotated .meta.xz files. */
-                        resolve(output.trim().replace(/\.meta$/, ""));
+                        /* Archives exist — return the directory so pmrep
+                           reads all archive files within it, giving full
+                           coverage across daily rotations and restarts. */
+                        resolve(archiveDir);
                     } else {
                         reject("Inga arkivfiler (.meta) hittades i " + archiveDir);
                     }

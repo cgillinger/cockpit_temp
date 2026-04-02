@@ -50,11 +50,10 @@ fi
 info "Källa:  $PLUGIN_SRC"
 info "Mål:    $TARGET"
 
-# ── Safety: backup existing install ──────────────────────────────────────────
+# ── Remove previous install ──────────────────────────────────────────────────
 if [[ -d "$TARGET" ]]; then
-    BACKUP="${TARGET}.bak.$(date +%Y%m%d%H%M%S)"
-    info "Befintlig installation backas upp till: $BACKUP"
-    mv "$TARGET" "$BACKUP"
+    info "Tar bort befintlig installation: $TARGET"
+    rm -rf "$TARGET"
 fi
 
 # ── Copy files ───────────────────────────────────────────────────────────────
