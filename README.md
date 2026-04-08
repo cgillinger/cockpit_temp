@@ -174,6 +174,11 @@ simply produce no data but cause no errors.
 sudo bash scripts/install_plugin.sh
 ```
 
+This also disables PCP archive compression (`$PCP_COMPRESSAFTER=never`), which
+is required because `pmrep` cannot read `.xz`-compressed archives when given a
+directory argument. See [PCP Archive Compression](#pcp-archive-compression-important)
+for details.
+
 Re-run this command any time you change `sensors.json`.
 
 ### Step 5 — Open Cockpit
@@ -214,13 +219,55 @@ others must be selected manually.
 
 ---
 
+## PCP Archive Compression (Important)
+
+PCP archive compression **must be disabled** for this plugin to work.
+
+`pmlogger_daily` compresses rotated PCP archives by default (`.0` → `.0.xz`,
+`.meta` → `.meta.xz`) but leaves `.index` files uncompressed. When `pmrep` is
+given a directory as its `-a` argument, it tries to open all archive sets found
+there. The orphaned `.index` files (pointing to compressed `.0.xz`/`.meta.xz`
+that pmrep cannot read) cause pmrep to fail with
+`PM_ERR_NAME Unknown metric name` for every metric.
+
+**The install script handles this automatically** by setting
+`$PCP_COMPRESSAFTER=never` in `/etc/pcp/pmlogger/control.d/local`.
+
+### If archives are already compressed
+
+If you installed PCP before running the install script, some archives may
+already be compressed. To fix this:
+
+1. Move `.xz` files out of the archive directory:
+   ```bash
+   ARCHIVE_DIR=/var/log/pcp/pmlogger/$(hostname)
+   mkdir -p /tmp/pcp-compressed-backup
+   mv "$ARCHIVE_DIR"/*.xz /tmp/pcp-compressed-backup/ 2>/dev/null
+   ```
+
+2. Remove orphaned `.index` files (those whose matching `.0` file is missing):
+   ```bash
+   for idx in "$ARCHIVE_DIR"/*.index; do
+       base="${idx%.index}"
+       if [[ ! -f "$base.0" ]]; then
+           rm -v "$idx"
+       fi
+   done
+   ```
+
+3. Restart pmlogger:
+   ```bash
+   sudo systemctl restart pmlogger
+   ```
+
+---
+
 ## Archive Rotation & Disk Budget
 
 ### How it works
 
 1. **pmlogger_daily** runs via systemd timer (or cron) once per day:
    - Creates a new daily archive
-   - Compresses old archives (`-x 0`)
    - Removes archives older than `RETENTION_DAYS` (`-k N`)
 
 2. **pcp-archive-budget** cron script (`/etc/cron.daily/pcp-archive-budget`):

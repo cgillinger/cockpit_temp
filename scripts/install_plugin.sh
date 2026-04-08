@@ -50,6 +50,27 @@ fi
 info "Källa:  $PLUGIN_SRC"
 info "Mål:    $TARGET"
 
+# ── Disable PCP archive compression ─────────────────────────────────────────
+# pmrep cannot read .xz-compressed archives when given a directory argument.
+# pmlogger_daily compresses rotated archives by default, which breaks this
+# plugin's data retrieval.  Setting $PCP_COMPRESSAFTER=never prevents that.
+PMLOGGER_CONTROL="/etc/pcp/pmlogger/control.d/local"
+if [[ -f "$PMLOGGER_CONTROL" ]]; then
+    if grep -q '^#\$PCP_COMPRESSAFTER=never' "$PMLOGGER_CONTROL" 2>/dev/null; then
+        sed -i 's/^#\$PCP_COMPRESSAFTER=never/$PCP_COMPRESSAFTER=never/' "$PMLOGGER_CONTROL"
+        ok "Uncommented PCP_COMPRESSAFTER=never in $PMLOGGER_CONTROL"
+    elif ! grep -q '^\$PCP_COMPRESSAFTER=never' "$PMLOGGER_CONTROL" 2>/dev/null; then
+        echo '$PCP_COMPRESSAFTER=never' >> "$PMLOGGER_CONTROL"
+        ok "Added PCP_COMPRESSAFTER=never to $PMLOGGER_CONTROL"
+    else
+        ok "PCP_COMPRESSAFTER=never already set in $PMLOGGER_CONTROL"
+    fi
+else
+    info "$PMLOGGER_CONTROL not found — skipping compression config"
+    info "If pmlogger_daily compresses archives, create the file manually:"
+    info '  echo "\$PCP_COMPRESSAFTER=never" | sudo tee -a '"$PMLOGGER_CONTROL"
+fi
+
 # ── Remove previous install ──────────────────────────────────────────────────
 if [[ -d "$TARGET" ]]; then
     info "Tar bort befintlig installation: $TARGET"
