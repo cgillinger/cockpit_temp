@@ -8,37 +8,132 @@
                     "id": "cpu_package",
                     "label": "Processortemperatur (Package)",
                     "metric": "lmsensors.coretemp_isa_0000.package_id_0",
-                    "match": { "chip": "coretemp", "feature": "Package" },
+                    "match": {
+                        "chip": "coretemp",
+                        "feature": "Package"
+                    },
                     "default": true,
-                    "thresholds": null
+                    "thresholds": [
+                        {
+                            "value": 70,
+                            "label": "CPU Varning",
+                            "color": "#FFA726"
+                        },
+                        {
+                            "value": 75,
+                            "label": "CPU Smartd",
+                            "color": "#FF7043"
+                        },
+                        {
+                            "value": 80,
+                            "label": "CPU Kritiskt",
+                            "color": "#E53935"
+                        }
+                    ]
                 },
                 {
                     "id": "cpu_core0",
                     "label": "CPU Core 0",
                     "metric": "lmsensors.coretemp_isa_0000.core_0",
-                    "match": { "chip": "coretemp", "feature": "Core 0" },
-                    "thresholds": null
+                    "match": {
+                        "chip": "coretemp",
+                        "feature": "Core 0"
+                    },
+                    "thresholds": [
+                        {
+                            "value": 70,
+                            "label": "CPU Varning",
+                            "color": "#FFA726"
+                        },
+                        {
+                            "value": 75,
+                            "label": "CPU Smartd",
+                            "color": "#FF7043"
+                        },
+                        {
+                            "value": 80,
+                            "label": "CPU Kritiskt",
+                            "color": "#E53935"
+                        }
+                    ]
                 },
                 {
                     "id": "cpu_core1",
                     "label": "CPU Core 1",
                     "metric": "lmsensors.coretemp_isa_0000.core_1",
-                    "match": { "chip": "coretemp", "feature": "Core 1" },
-                    "thresholds": null
+                    "match": {
+                        "chip": "coretemp",
+                        "feature": "Core 1"
+                    },
+                    "thresholds": [
+                        {
+                            "value": 70,
+                            "label": "CPU Varning",
+                            "color": "#FFA726"
+                        },
+                        {
+                            "value": 75,
+                            "label": "CPU Smartd",
+                            "color": "#FF7043"
+                        },
+                        {
+                            "value": 80,
+                            "label": "CPU Kritiskt",
+                            "color": "#E53935"
+                        }
+                    ]
                 },
                 {
                     "id": "cpu_core2",
                     "label": "CPU Core 2",
                     "metric": "lmsensors.coretemp_isa_0000.core_2",
-                    "match": { "chip": "coretemp", "feature": "Core 2" },
-                    "thresholds": null
+                    "match": {
+                        "chip": "coretemp",
+                        "feature": "Core 2"
+                    },
+                    "thresholds": [
+                        {
+                            "value": 70,
+                            "label": "CPU Varning",
+                            "color": "#FFA726"
+                        },
+                        {
+                            "value": 75,
+                            "label": "CPU Smartd",
+                            "color": "#FF7043"
+                        },
+                        {
+                            "value": 80,
+                            "label": "CPU Kritiskt",
+                            "color": "#E53935"
+                        }
+                    ]
                 },
                 {
                     "id": "cpu_core3",
                     "label": "CPU Core 3",
                     "metric": "lmsensors.coretemp_isa_0000.core_3",
-                    "match": { "chip": "coretemp", "feature": "Core 3" },
-                    "thresholds": null
+                    "match": {
+                        "chip": "coretemp",
+                        "feature": "Core 3"
+                    },
+                    "thresholds": [
+                        {
+                            "value": 70,
+                            "label": "CPU Varning",
+                            "color": "#FFA726"
+                        },
+                        {
+                            "value": 75,
+                            "label": "CPU Smartd",
+                            "color": "#FF7043"
+                        },
+                        {
+                            "value": 80,
+                            "label": "CPU Kritiskt",
+                            "color": "#E53935"
+                        }
+                    ]
                 }
             ]
         },
@@ -50,44 +145,71 @@
                     "id": "nvme_composite",
                     "label": "NVMe temperatur (Composite)",
                     "metric": "lmsensors.nvme_pci_0100.composite",
-                    "match": { "chip": "nvme", "feature": "Composite" },
+                    "match": {
+                        "chip": "nvme",
+                        "feature": "Composite"
+                    },
                     "default": true,
                     "thresholds": [
-                        { "value": 75, "label": "NVMe Composite Varning", "color": "#FFA726" },
-                        { "value": 80, "label": "NVMe Composite Kritiskt", "color": "#E53935" }
+                        {
+                            "value": 75,
+                            "label": "NVMe Composite Varning",
+                            "color": "#FFA726"
+                        },
+                        {
+                            "value": 80,
+                            "label": "NVMe Composite Kritiskt",
+                            "color": "#E53935"
+                        }
                     ]
                 },
                 {
                     "id": "nvme_sensor1",
                     "label": "NVMe temperatur (Sensor 1)",
                     "metric": "lmsensors.nvme_pci_0100.sensor_1",
-                    "match": { "chip": "nvme", "feature": "Sensor 1" },
+                    "match": {
+                        "chip": "nvme",
+                        "feature": "Sensor 1"
+                    },
                     "default": true,
                     "thresholds": [
-                        { "value": 82, "label": "NVMe Sensor 1 Varning", "color": "#FFA726" },
-                        { "value": 90, "label": "NVMe Sensor 1 Kritiskt", "color": "#E53935" }
+                        {
+                            "value": 82,
+                            "label": "NVMe Sensor 1 Varning",
+                            "color": "#FFA726"
+                        },
+                        {
+                            "value": 90,
+                            "label": "NVMe Sensor 1 Kritiskt",
+                            "color": "#E53935"
+                        }
                     ]
                 },
                 {
                     "id": "nvme_sensor2",
                     "label": "NVMe temperatur (Sensor 2)",
                     "metric": "lmsensors.nvme_pci_0100.sensor_2",
-                    "match": { "chip": "nvme", "feature": "Sensor 2" },
+                    "match": {
+                        "chip": "nvme",
+                        "feature": "Sensor 2"
+                    },
                     "thresholds": [
-                        { "value": 75, "label": "NVMe Sensor 2 Varning", "color": "#FFA726" },
-                        { "value": 80, "label": "NVMe Sensor 2 Kritiskt", "color": "#E53935" }
+                        {
+                            "value": 75,
+                            "label": "NVMe Sensor 2 Varning",
+                            "color": "#FFA726"
+                        },
+                        {
+                            "value": 80,
+                            "label": "NVMe Sensor 2 Kritiskt",
+                            "color": "#E53935"
+                        }
                     ]
                 }
             ]
         }
     ],
-    "thresholds": {
-        "global": [
-            { "value": 70, "label": "Varning 70\u00b0C", "color": "#FFA726", "style": "dashed" },
-            { "value": 75, "label": "Smartd 75\u00b0C", "color": "#FF7043", "style": "dashed" },
-            { "value": 80, "label": "Kritiskt 80\u00b0C", "color": "#E53935", "style": "dashed" }
-        ]
-    },
+    "thresholds": {},
     "retention": {
         "days": 365,
         "maxSizeGB": 5
