@@ -53,8 +53,8 @@
                     "match": { "chip": "nvme", "feature": "Composite" },
                     "default": true,
                     "thresholds": [
-                        { "value": 65, "label": "NVMe Varning", "color": "#FFA726" },
-                        { "value": 75, "label": "NVMe Kritiskt", "color": "#E53935" }
+                        { "value": 75, "label": "NVMe Composite Varning", "color": "#FFA726" },
+                        { "value": 80, "label": "NVMe Composite Kritiskt", "color": "#E53935" }
                     ]
                 },
                 {
@@ -63,14 +63,20 @@
                     "metric": "lmsensors.nvme_pci_0100.sensor_1",
                     "match": { "chip": "nvme", "feature": "Sensor 1" },
                     "default": true,
-                    "thresholds": null
+                    "thresholds": [
+                        { "value": 82, "label": "NVMe Sensor 1 Varning", "color": "#FFA726" },
+                        { "value": 90, "label": "NVMe Sensor 1 Kritiskt", "color": "#E53935" }
+                    ]
                 },
                 {
                     "id": "nvme_sensor2",
                     "label": "NVMe temperatur (Sensor 2)",
                     "metric": "lmsensors.nvme_pci_0100.sensor_2",
                     "match": { "chip": "nvme", "feature": "Sensor 2" },
-                    "thresholds": null
+                    "thresholds": [
+                        { "value": 75, "label": "NVMe Sensor 2 Varning", "color": "#FFA726" },
+                        { "value": 80, "label": "NVMe Sensor 2 Kritiskt", "color": "#E53935" }
+                    ]
                 }
             ]
         }

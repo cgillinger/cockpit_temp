@@ -143,8 +143,8 @@ minimal example for one CPU package sensor and one NVMe:
                     "metric": "lmsensors.nvme_pci_0100.composite",
                     "default": true,
                     "thresholds": [
-                        { "value": 65, "label": "NVMe Warning",  "color": "#FFA726" },
-                        { "value": 75, "label": "NVMe Critical", "color": "#E53935" }
+                        { "value": 75, "label": "NVMe Composite Warning",  "color": "#FFA726" },
+                        { "value": 80, "label": "NVMe Composite Critical", "color": "#E53935" }
                     ]
                 }
             ]
@@ -204,13 +204,48 @@ Each sensor entry can include a `thresholds` array to add sensor-specific lines:
     "label": "NVMe Composite",
     "metric": "lmsensors.nvme_pci_0100.composite",
     "thresholds": [
-        { "value": 65, "label": "NVMe Warning",  "color": "#FFA726" },
-        { "value": 75, "label": "NVMe Critical", "color": "#E53935" }
+        { "value": 75, "label": "NVMe Composite Warning",  "color": "#FFA726" },
+        { "value": 80, "label": "NVMe Composite Critical", "color": "#E53935" }
+    ]
+},
+{
+    "id": "nvme_sensor1",
+    "label": "NVMe Sensor 1 (controller chip)",
+    "metric": "lmsensors.nvme_pci_0100.sensor_1",
+    "thresholds": [
+        { "value": 82, "label": "NVMe Sensor 1 Warning",  "color": "#FFA726" },
+        { "value": 90, "label": "NVMe Sensor 1 Critical", "color": "#E53935" }
     ]
 }
 ```
 
 Set `"thresholds": null` to inherit only the global thresholds.
+
+### Thresholds — NVMe sensor rationale
+
+NVMe drives expose multiple temperature sensors that measure different physical
+locations and have very different normal operating ranges:
+
+| Sensor      | What it measures          | Normal range under load |
+|-------------|---------------------------|-------------------------|
+| Composite   | Drive-level aggregate      | 50–70 °C                |
+| Sensor 1    | Controller chip            | 65–82 °C                |
+| Sensor 2    | NAND flash                 | 50–70 °C                |
+
+**Samsung PM9A1 (MZVL8512HELU, OEM 980 Pro Gen4):** The controller chip
+(Sensor 1) routinely runs 15–20 °C hotter than the composite temperature. This
+is expected behaviour — the drive begins thermal throttling only when the
+*composite* temperature approaches 82 °C. The authoritative check for thermal
+problems is `nvme smart-log`:
+
+```bash
+nvme smart-log /dev/nvme0 | grep -E "Warning Temperature Time|Critical Composite Temperature Time|Thermal Management T[12] Trans Count"
+```
+
+If all three fields report `0`, the drive has never throttled and the higher
+Sensor 1 readings are normal. A global threshold calibrated against composite
+temperatures (e.g. 75 °C) will fire false alarms for Sensor 1. Use
+sensor-specific thresholds as shown above to avoid this.
 
 ### The `default` flag
 
