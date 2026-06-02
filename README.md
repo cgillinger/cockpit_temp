@@ -6,6 +6,10 @@ Data is collected and archived by **PCP** (Performance Co-Pilot) via the
 `pmdalmsensors` PMDA, giving you up to 365 days of history with automatic
 archive rotation and disk-budget enforcement.
 
+> This is a personal hobby project I build for my own use and publish in case
+> it's useful to someone else. I work on it in my spare time, so issues and PRs
+> are welcome but replies may be slow. Use at your own risk.
+
 ---
 
 ## Features
