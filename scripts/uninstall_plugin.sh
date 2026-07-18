@@ -67,12 +67,15 @@ if $PURGE; then
         ok "Borttagen: $CONF"
     fi
 
-    # Remove budget cron script
-    BUDGET="/etc/cron.daily/pcp-archive-budget"
-    if [[ -f "$BUDGET" ]]; then
-        rm -f "$BUDGET"
-        ok "Borttagen: $BUDGET"
-    fi
+    # Remove budget script and cron entry (incl. legacy cron.daily path)
+    for BUDGET in /usr/local/bin/pcp-archive-budget \
+                  /etc/cron.d/pcp-archive-budget \
+                  /etc/cron.daily/pcp-archive-budget; do
+        if [[ -f "$BUDGET" ]]; then
+            rm -f "$BUDGET"
+            ok "Borttagen: $BUDGET"
+        fi
+    done
 
     warn "PCP-arkivdata (loggar) bevaras. Ta bort manuellt vid behov:"
     warn "  rm -rf /var/log/pcp/pmlogger/\$(hostname)/"
