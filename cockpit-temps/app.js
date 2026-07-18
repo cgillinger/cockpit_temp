@@ -27,9 +27,13 @@
         [      86400000,    60],  // <=24h  -> 1 min
         [     604800000,   300],  // <=7d   -> 5 min
         [    2592000000,   900],  // <=30d  -> 15 min
-        [    7776000000,  3600],  // <=90d  -> 1 h
-        [  MAX_RANGE_MS,  7200]   // <=120d -> 2 h
+        [  MAX_RANGE_MS,  1800]   // <=120d -> 30 min (dense enough for real daily min/max)
     ];
+
+    /* Ranges longer than this are displayed as daily aggregates:
+       mean line + min/max band (RRDtool/Grafana convention — raw samples
+       at this scale are unreadable sawtooth noise) */
+    var AGGREGATE_THRESHOLD_MS = 14 * 86400000;
 
     /* SVG namespace */
     var SVG_NS = "http://www.w3.org/2000/svg";
@@ -44,6 +48,7 @@
     var colorMap = {};          // sensor id -> color string
     var startTime = null;       // Date
     var endTime = null;         // Date
+    var zoomFetchTimer = null;  // debounce for zoom-triggered refetch
 
     /* ======================================================================
        Initialization
@@ -388,7 +393,10 @@
                 var thresholds = gatherThresholds(sensors);
                 window._lastChartData = { series: parsed.series, thresholds: thresholds };
                 renderChart(parsed.series, thresholds);
-                setStatus(parsed.totalPoints + " datapunkter laddade.");
+                var aggNote = (endTime.getTime() - startTime.getTime()) > AGGREGATE_THRESHOLD_MS
+                    ? " Dygnsvis medel + min/max-band — zooma (dra eller mushjul) för detaljer."
+                    : "";
+                setStatus(parsed.totalPoints + " datapunkter laddade." + aggNote);
             })
             .catch(function (err) {
                 document.getElementById("btn-fetch").disabled = false;
@@ -581,8 +589,13 @@
         /* Hide tooltip */
         document.getElementById("chart-tooltip").classList.add("hidden");
 
+        /* Long ranges show daily aggregates (mean + min/max band) instead
+           of raw samples */
+        var aggregated = (endTime.getTime() - startTime.getTime()) > AGGREGATE_THRESHOLD_MS;
+        var displaySeries = aggregated ? series.map(aggregateDailySeries) : series;
+
         /* Estimate legend height: one row per ~3 series, 20px per row + padding */
-        var legendRows = Math.ceil(series.length / 3);
+        var legendRows = Math.ceil(displaySeries.length / 3);
         var legendHeight = legendRows * 22 + 12;
 
         /* Dimensions — legend below chart, minimal right margin */
@@ -601,11 +614,13 @@
         var xMin = startTime.getTime(), xMax = endTime.getTime();
         var dataYMin = Infinity, dataYMax = -Infinity;
 
-        series.forEach(function (s) {
+        displaySeries.forEach(function (s) {
             s.points.forEach(function (p) {
                 if (p.value === null) return;
-                if (p.value < dataYMin) dataYMin = p.value;
-                if (p.value > dataYMax) dataYMax = p.value;
+                var lo = (p.min !== undefined) ? p.min : p.value;
+                var hi = (p.max !== undefined) ? p.max : p.value;
+                if (lo < dataYMin) dataYMin = lo;
+                if (hi > dataYMax) dataYMax = hi;
             });
         });
 
@@ -700,9 +715,19 @@
         });
         svg.appendChild(threshGroup);
 
-        /* Data lines (clipped) */
+        /* Data lines (clipped); aggregated mode draws a min/max band
+           behind each mean line */
         var dataGroup = svgEl("g", { "clip-path": "url(#plot-clip)" });
-        series.forEach(function (s) {
+        displaySeries.forEach(function (s) {
+            if (aggregated) {
+                var bandD = buildBandPath(s.points, xScale, yScale);
+                if (bandD) {
+                    dataGroup.appendChild(svgEl("path", {
+                        d: bandD, fill: s.color,
+                        "fill-opacity": 0.15, stroke: "none"
+                    }));
+                }
+            }
             var line = buildLinePath(s.points, xScale, yScale);
             if (line.d) {
                 dataGroup.appendChild(svgEl("path", {
@@ -755,6 +780,7 @@
             x1: margin.left, x2: margin.left + plotW,
             y1: margin.top + plotH, y2: margin.top + plotH
         }));
+        var tickStepMs = xTicks.length > 1 ? xTicks[1] - xTicks[0] : (xMax - xMin);
         xTicks.forEach(function (t) {
             var x = xScale(t);
             xAxisGroup.appendChild(svgEl("line", {
@@ -765,16 +791,22 @@
                 x: x, y: margin.top + plotH + 18,
                 "text-anchor": "middle", "class": "chart-axis"
             });
-            txt.textContent = formatXTick(t, xMax - xMin);
-            xAxisGroup.appendChild(txt);
-            /* Second line for date if range > 24h */
-            if ((xMax - xMin) > 86400000) {
-                var txt2 = svgEl("text", {
-                    x: x, y: margin.top + plotH + 30,
-                    "text-anchor": "middle", "class": "chart-axis"
-                });
-                txt2.textContent = formatXTickDate(t);
-                xAxisGroup.appendChild(txt2);
+            if (tickStepMs >= 86400000) {
+                /* Daily+ ticks: date only — a repeated "00:00" row is noise */
+                txt.textContent = formatXTickDate(t);
+                xAxisGroup.appendChild(txt);
+            } else {
+                txt.textContent = formatXTick(t, xMax - xMin);
+                xAxisGroup.appendChild(txt);
+                /* Second line for date if range > 24h */
+                if ((xMax - xMin) > 86400000) {
+                    var txt2 = svgEl("text", {
+                        x: x, y: margin.top + plotH + 30,
+                        "text-anchor": "middle", "class": "chart-axis"
+                    });
+                    txt2.textContent = formatXTickDate(t);
+                    xAxisGroup.appendChild(txt2);
+                }
             }
         });
         svg.appendChild(xAxisGroup);
@@ -787,7 +819,7 @@
         var legendItemY = legendBaseY;
         var legendColWidth = Math.max(180, Math.floor(plotW / 3));
 
-        series.forEach(function (s, i) {
+        displaySeries.forEach(function (s, i) {
             /* Wrap to next row if we'd exceed plot width */
             if (i > 0 && legendItemX + legendColWidth > margin.left + plotW + 10) {
                 legendItemX = legendX;
@@ -810,7 +842,7 @@
 
         /* Hover dots (one per series, initially hidden) */
         var hoverDots = [];
-        series.forEach(function (s) {
+        displaySeries.forEach(function (s) {
             var dot = svgEl("circle", {
                 r: 4, fill: s.color,
                 "class": "chart-hover-dot",
@@ -847,10 +879,12 @@
             crosshair.setAttribute("display", "");
 
             /* Build tooltip content */
-            var html = '<div class="tt-time">' + formatTooltipTime(new Date(timeAtMouse)) + "</div>";
+            var html = '<div class="tt-time">' +
+                (aggregated ? formatTooltipDate(new Date(timeAtMouse))
+                            : formatTooltipTime(new Date(timeAtMouse))) + "</div>";
             var anyVisible = false;
 
-            series.forEach(function (s, idx) {
+            displaySeries.forEach(function (s, idx) {
                 var nearest = findNearest(s.points, timeAtMouse);
                 if (nearest && nearest.value !== null) {
                     anyVisible = true;
@@ -859,10 +893,14 @@
                     hoverDots[idx].setAttribute("cx", px);
                     hoverDots[idx].setAttribute("cy", py);
                     hoverDots[idx].setAttribute("display", "");
+                    var val = nearest.min !== undefined
+                        ? nearest.value.toFixed(1) + "\u00b0C (" +
+                          nearest.min.toFixed(0) + "\u2013" + nearest.max.toFixed(0) + "\u00b0)"
+                        : nearest.value.toFixed(1) + "\u00b0C";
                     html += '<div class="tt-row">' +
                         '<span class="tt-dot" style="background:' + s.color + '"></span>' +
                         '<span>' + escapeHtml(s.label) + '</span>' +
-                        '<span class="tt-val">' + nearest.value.toFixed(1) + "\u00b0C</span></div>";
+                        '<span class="tt-val">' + val + "</span></div>";
                 } else {
                     hoverDots[idx].setAttribute("display", "none");
                 }
@@ -892,8 +930,151 @@
             tooltipEl.classList.add("hidden");
         });
 
+        /* --- Zoom (Grafana conventions): drag to zoom into a selection,
+           mouse wheel zooms around the cursor, double-click zooms out --- */
+        var selRect = svgEl("rect", {
+            y: margin.top, height: plotH, x: 0, width: 0,
+            fill: "rgba(25,118,210,0.15)", stroke: "#1976D2",
+            "stroke-width": 0.5, display: "none", "pointer-events": "none"
+        });
+
+        function timeAtX(px) {
+            return xMin + (px - margin.left) / plotW * (xMax - xMin);
+        }
+
+        function applyRange(aMs, bMs) {
+            var MIN_RANGE_MS = 1800000; // 30 min — log interval is 1 min
+            if (bMs - aMs < MIN_RANGE_MS) {
+                var c = (aMs + bMs) / 2;
+                aMs = c - MIN_RANGE_MS / 2;
+                bMs = c + MIN_RANGE_MS / 2;
+            }
+            var now = Date.now();
+            if (bMs > now) bMs = now;
+            if (bMs - aMs > MAX_RANGE_MS) aMs = bMs - MAX_RANGE_MS;
+            if (aMs >= bMs) aMs = bMs - MIN_RANGE_MS;
+            startTime = new Date(aMs);
+            endTime = new Date(bMs);
+            syncDateInputs();
+            document.querySelectorAll(".btn-preset").forEach(function (b) {
+                b.classList.remove("active");
+            });
+            /* Re-render cached data immediately for direct feedback, then
+               refetch at the resolution matching the new range */
+            renderChart(series, thresholds);
+            clearTimeout(zoomFetchTimer);
+            zoomFetchTimer = setTimeout(fetchAndRender, 400);
+        }
+
+        var dragStartX = null;
+        overlay.addEventListener("mousedown", function (e) {
+            if (e.button !== 0) return;
+            dragStartX = e.clientX - svg.getBoundingClientRect().left;
+            e.preventDefault();
+        });
+        overlay.addEventListener("mousemove", function (e) {
+            if (dragStartX === null) return;
+            var mx = e.clientX - svg.getBoundingClientRect().left;
+            var x0 = Math.max(margin.left, Math.min(dragStartX, mx));
+            var x1 = Math.min(margin.left + plotW, Math.max(dragStartX, mx));
+            selRect.setAttribute("x", x0);
+            selRect.setAttribute("width", Math.max(0, x1 - x0));
+            selRect.setAttribute("display", "");
+        });
+        /* mouseup on window so a drag released outside the plot still
+           completes; remove the previous chart's listener first */
+        if (window._chartMouseUp) window.removeEventListener("mouseup", window._chartMouseUp);
+        window._chartMouseUp = function (e) {
+            if (dragStartX === null) return;
+            var mx = e.clientX - svg.getBoundingClientRect().left;
+            var start = dragStartX;
+            dragStartX = null;
+            selRect.setAttribute("display", "none");
+            if (Math.abs(mx - start) > 8) {
+                applyRange(timeAtX(Math.min(start, mx)), timeAtX(Math.max(start, mx)));
+            }
+        };
+        window.addEventListener("mouseup", window._chartMouseUp);
+
+        overlay.addEventListener("dblclick", function () {
+            /* Zoom out to twice the range around the center */
+            var half = xMax - xMin;
+            var c = (xMax + xMin) / 2;
+            applyRange(c - half, c + half);
+        });
+
+        overlay.addEventListener("wheel", function (e) {
+            e.preventDefault();
+            var t = timeAtX(e.clientX - svg.getBoundingClientRect().left);
+            var factor = e.deltaY < 0 ? 0.7 : 1 / 0.7;
+            applyRange(t - (t - xMin) * factor, t + (xMax - t) * factor);
+        }, { passive: false });
+
         svg.appendChild(overlay);
+        svg.appendChild(selRect);
         container.appendChild(svg);
+    }
+
+    /* Aggregate a raw series into daily buckets: mean line + min/max
+       band. Days without samples become gaps. */
+    function aggregateDailySeries(s) {
+        var buckets = {};
+        s.points.forEach(function (p) {
+            if (p.value === null) return;
+            var d = new Date(p.time.getTime());
+            d.setHours(0, 0, 0, 0);
+            var key = d.getTime();
+            var b = buckets[key];
+            if (!b) b = buckets[key] = { sum: 0, n: 0, min: Infinity, max: -Infinity };
+            b.sum += p.value;
+            b.n++;
+            if (p.value < b.min) b.min = p.value;
+            if (p.value > b.max) b.max = p.value;
+        });
+        var keys = Object.keys(buckets).map(Number).sort(function (a, b) { return a - b; });
+        var points = [];
+        var prevKey = null;
+        keys.forEach(function (k) {
+            /* 1.5 days rather than 1: a DST day is 23 or 25 h */
+            if (prevKey !== null && k - prevKey > 86400000 * 1.5) {
+                points.push({ time: new Date((prevKey + k) / 2), value: null });
+            }
+            var b = buckets[k];
+            points.push({
+                time: new Date(k + 43200000),
+                value: b.sum / b.n,
+                min: b.min,
+                max: b.max
+            });
+            prevKey = k;
+        });
+        return { id: s.id, label: s.label, color: s.color, points: points };
+    }
+
+    /* Min–max band path for an aggregated series: per contiguous segment,
+       trace max values forward and min values back, closed */
+    function buildBandPath(points, xScale, yScale) {
+        var segs = [];
+        var seg = [];
+        points.forEach(function (p) {
+            if (p.value === null || p.min === undefined) {
+                if (seg.length > 1) segs.push(seg);
+                seg = [];
+            } else {
+                seg.push(p);
+            }
+        });
+        if (seg.length > 1) segs.push(seg);
+
+        return segs.map(function (sg) {
+            var top = sg.map(function (p) {
+                return xScale(p.time.getTime()) + "," + yScale(p.max);
+            });
+            var bottom = sg.slice().reverse().map(function (p) {
+                return xScale(p.time.getTime()) + "," + yScale(p.min);
+            });
+            return "M" + top.join(" L") + " L" + bottom.join(" L") + " Z";
+        }).join(" ");
     }
 
     /* Build SVG path string, breaking at null values (gaps).  Segments with
@@ -981,9 +1162,10 @@
     function niceTicksTime(minMs, maxMs, count) {
         var range = maxMs - minMs;
         var steps = [
-            60000, 300000, 600000, 1800000, 3600000,        // min, 5min, 10min, 30min, 1h
+            60000, 300000, 600000, 1800000, 3600000,         // min, 5min, 10min, 30min, 1h
             7200000, 21600000, 43200000, 86400000,           // 2h, 6h, 12h, 1d
-            172800000, 604800000, 2592000000, 7776000000     // 2d, 7d, 30d, 90d
+            172800000, 259200000, 604800000, 1209600000,     // 2d, 3d, 7d, 14d
+            2592000000, 7776000000                           // 30d, 90d
         ];
         var step = steps[steps.length - 1];
         for (var i = 0; i < steps.length; i++) {
@@ -1081,6 +1263,14 @@
             "jul", "aug", "sep", "okt", "nov", "dec"];
         return d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear() +
             " " + pad(d.getHours()) + ":" + pad(d.getMinutes()) + ":" + pad(d.getSeconds());
+    }
+
+    /* Date-only tooltip header for daily-aggregated mode */
+    function formatTooltipDate(d) {
+        var months = ["jan", "feb", "mar", "apr", "maj", "jun",
+            "jul", "aug", "sep", "okt", "nov", "dec"];
+        return d.getDate() + " " + months[d.getMonth()] + " " + d.getFullYear() +
+            " (dygnsvärden: medel, min–max)";
     }
 
     function humanStep(sec) {
