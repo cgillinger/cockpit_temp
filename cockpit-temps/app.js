@@ -594,16 +594,16 @@
 
         if (plotW < 100 || plotH < 80) return;
 
-        /* Calculate data extents (thresholds do NOT affect y-scale) */
-        var xMin = Infinity, xMax = -Infinity;
+        /* X-domain spans the requested range, not the data extent, so
+           periods without data render as empty space instead of silently
+           compressing the axis. Y-scale from data (thresholds do NOT
+           affect it). */
+        var xMin = startTime.getTime(), xMax = endTime.getTime();
         var dataYMin = Infinity, dataYMax = -Infinity;
 
         series.forEach(function (s) {
             s.points.forEach(function (p) {
                 if (p.value === null) return;
-                var t = p.time.getTime();
-                if (t < xMin) xMin = t;
-                if (t > xMax) xMax = t;
                 if (p.value < dataYMin) dataYMin = p.value;
                 if (p.value > dataYMax) dataYMax = p.value;
             });
@@ -613,8 +613,6 @@
         var yMin = Math.floor(dataYMin / 5) * 5 - 5;
         var yMax = Math.ceil(dataYMax / 5) * 5 + 5;
         if (yMin < 0) yMin = 0;
-
-        if (xMin >= xMax) { xMin = startTime.getTime(); xMax = endTime.getTime(); }
 
         /* Scale functions */
         function xScale(t) { return margin.left + (t - xMin) / (xMax - xMin) * plotW; }
