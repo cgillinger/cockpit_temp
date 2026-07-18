@@ -3,7 +3,7 @@
 A Cockpit plugin for Ubuntu Server that visualises hardware temperature data
 (CPU, NVMe, etc.) as interactive line charts with configurable thresholds.
 Data is collected and archived by **PCP** (Performance Co-Pilot) via the
-`pmdalmsensors` PMDA, giving you up to 365 days of history with automatic
+`pmdalmsensors` PMDA, giving you up to 120 days of history with automatic
 archive rotation and disk-budget enforcement.
 
 > This is a personal hobby project I build for my own use and publish in case
@@ -64,15 +64,15 @@ This will:
 - Run `sensors-detect` to load kernel sensor modules
 - Install the lmsensors PMDA
 - Configure `pmlogger` to archive lmsensors metrics every 60 s
-- Set up archive rotation (365 days retention, 5 GB max)
+- Set up archive rotation (120 days retention, 10 GB max)
 - Enable and start all services
 
 **Configurable variables** (set before running or edit the script):
 
 | Variable             | Default | Description                  |
 |----------------------|---------|------------------------------|
-| `RETENTION_DAYS`     | 365     | Keep archives this many days |
-| `MAX_SIZE_GB`        | 5       | Max total archive disk usage |
+| `RETENTION_DAYS`     | 120     | Keep archives this many days |
+| `MAX_SIZE_GB`        | 10      | Max total archive disk usage |
 | `PMLOGGER_INTERVAL`  | 60      | Logging interval in seconds  |
 
 Example:
@@ -162,8 +162,8 @@ minimal example for one CPU package sensor and one NVMe:
         ]
     },
     "retention": {
-        "days": 365,
-        "maxSizeGB": 5
+        "days": 120,
+        "maxSizeGB": 10
     },
     "archiveBase": "/var/log/pcp/pmlogger"
 }

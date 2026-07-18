@@ -211,8 +211,8 @@
     ],
     "thresholds": {},
     "retention": {
-        "days": 365,
-        "maxSizeGB": 5
+        "days": 120,
+        "maxSizeGB": 10
     },
     "archiveBase": "/var/log/pcp/pmlogger"
 }
