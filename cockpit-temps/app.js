@@ -14,7 +14,7 @@
        Constants
        ====================================================================== */
 
-    var MAX_RANGE_MS = 365 * 24 * 3600 * 1000; // 365 days
+    var MAX_RANGE_MS = 120 * 24 * 3600 * 1000; // 120 days — matches server-side archive retention
 
     var SERIES_COLORS = [
         "#1976D2", "#388E3C", "#F57C00", "#7B1FA2",
@@ -28,7 +28,7 @@
         [     604800000,   300],  // <=7d   -> 5 min
         [    2592000000,   900],  // <=30d  -> 15 min
         [    7776000000,  3600],  // <=90d  -> 1 h
-        [  MAX_RANGE_MS, 21600]   // <=365d -> 6 h
+        [  MAX_RANGE_MS,  7200]   // <=120d -> 2 h
     ];
 
     /* SVG namespace */
@@ -284,7 +284,7 @@
         var warning = document.getElementById("range-warning");
         if (rangeMs > MAX_RANGE_MS) {
             startTime = new Date(endTime.getTime() - MAX_RANGE_MS);
-            warning.textContent = "Maximalt intervall är 365 dagar. Startdatum justerades automatiskt.";
+            warning.textContent = "Maximalt intervall är 120 dagar. Startdatum justerades automatiskt.";
             warning.classList.remove("hidden");
         } else if (rangeMs <= 0) {
             endTime = new Date();
@@ -705,13 +705,19 @@
         /* Data lines (clipped) */
         var dataGroup = svgEl("g", { "clip-path": "url(#plot-clip)" });
         series.forEach(function (s) {
-            var pathD = buildLinePath(s.points, xScale, yScale);
-            if (pathD) {
+            var line = buildLinePath(s.points, xScale, yScale);
+            if (line.d) {
                 dataGroup.appendChild(svgEl("path", {
-                    d: pathD, stroke: s.color,
+                    d: line.d, stroke: s.color,
                     "class": "chart-line"
                 }));
             }
+            line.dots.forEach(function (pt) {
+                dataGroup.appendChild(svgEl("circle", {
+                    cx: pt[0], cy: pt[1], r: 2,
+                    fill: s.color
+                }));
+            });
         });
         svg.appendChild(dataGroup);
 
@@ -892,7 +898,10 @@
         container.appendChild(svg);
     }
 
-    /* Build SVG path string, breaking at null values (gaps) */
+    /* Build SVG path string, breaking at null values (gaps).  Segments with
+       a single point cannot be drawn as a path (a trailing "L" without
+       coordinates makes the whole d-attribute invalid, so nothing renders);
+       they are returned separately and drawn as dots. */
     function buildLinePath(points, xScale, yScale) {
         var parts = [];
         var segment = [];
@@ -900,14 +909,23 @@
             if (p.value === null) {
                 if (segment.length > 0) { parts.push(segment); segment = []; }
             } else {
-                segment.push(xScale(p.time.getTime()) + "," + yScale(p.value));
+                segment.push([xScale(p.time.getTime()), yScale(p.value)]);
             }
         });
         if (segment.length > 0) parts.push(segment);
 
-        return parts.map(function (seg) {
-            return "M" + seg[0] + " L" + seg.slice(1).join(" L");
-        }).join(" ");
+        var dots = [];
+        var d = parts.map(function (seg) {
+            if (seg.length === 1) {
+                dots.push(seg[0]);
+                return "";
+            }
+            return "M" + seg[0].join(",") + " L" + seg.slice(1).map(function (pt) {
+                return pt.join(",");
+            }).join(" L");
+        }).filter(function (part) { return part; }).join(" ");
+
+        return { d: d, dots: dots };
     }
 
     /* Find the data point nearest to a given timestamp */
@@ -959,7 +977,9 @@
         return ticks;
     }
 
-    /* Nice tick positions for a time scale */
+    /* Nice tick positions for a time scale.  Ticks are aligned to local
+       time boundaries — raw epoch multiples would land on UTC boundaries,
+       e.g. daily ticks at 02:00 local during CEST. */
     function niceTicksTime(minMs, maxMs, count) {
         var range = maxMs - minMs;
         var steps = [
@@ -972,10 +992,25 @@
             if (range / steps[i] <= count * 1.5) { step = steps[i]; break; }
         }
         var ticks = [];
-        var v = Math.ceil(minMs / step) * step;
-        while (v <= maxMs) {
-            ticks.push(v);
-            v += step;
+        if (step >= 86400000) {
+            /* Step in whole days: walk local midnights so ticks stay on
+               00:00 local across DST transitions */
+            var days = Math.round(step / 86400000);
+            var d = new Date(minMs);
+            d.setHours(0, 0, 0, 0);
+            while (d.getTime() < minMs) d.setDate(d.getDate() + days);
+            while (d.getTime() <= maxMs) {
+                ticks.push(d.getTime());
+                d.setDate(d.getDate() + days);
+            }
+        } else {
+            /* Sub-day step: shift alignment by the local UTC offset */
+            var offsetMs = new Date(minMs).getTimezoneOffset() * 60000;
+            var v = Math.ceil((minMs - offsetMs) / step) * step + offsetMs;
+            while (v <= maxMs) {
+                ticks.push(v);
+                v += step;
+            }
         }
         return ticks;
     }
