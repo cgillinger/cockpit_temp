@@ -10,6 +10,8 @@ archive rotation and disk-budget enforcement.
 > it's useful to someone else. I work on it in my spare time, so issues and PRs
 > are welcome but replies may be slow. Use at your own risk.
 
+![Temperature charts with thresholds (fictional demo data)](docs/screenshot.png)
+
 ---
 
 ## Features
