@@ -470,3 +470,15 @@ sudo bash scripts/uninstall_plugin.sh --purge
 ## License
 
 MIT
+
+## Part of a Cockpit plugin suite
+
+I build a small family of Cockpit plugins for home servers, all
+dependency-light and made to be readable at a glance:
+
+- **cockpit-temps** — hardware temperature history with thresholds *(this plugin)*
+- [cockpit-smart](https://github.com/cgillinger/cockpit_smart) — S.M.A.R.T. disk health with trend tracking
+- [cockpit-pcloud](https://github.com/cgillinger/cockpit-pcloud) — pCloud storage quota and backup folder status
+- [cockpit-tailscale](https://github.com/cgillinger/cockpit_tailscale) — plain-language Tailscale network overview
+
+Browse them all via the [cockpit-plugin topic](https://github.com/search?q=user%3Acgillinger+topic%3Acockpit-plugin&type=repositories).
